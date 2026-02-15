@@ -64,6 +64,11 @@ export function buildShortlistQuery(rawQuery: Record<string, unknown>): Recommen
     query.symbol = symbol;
   }
 
+  const uniqueSymbol = parseBoolean(rawQuery.uniqueSymbol);
+  if (uniqueSymbol !== null) {
+    query.uniqueSymbol = uniqueSymbol;
+  }
+
   return query;
 }
 
@@ -111,6 +116,24 @@ function readQueryString(rawValue: unknown): string | null {
   if (Array.isArray(rawValue) && rawValue.length > 0) {
     const [first] = rawValue;
     return typeof first === "string" ? first : null;
+  }
+
+  return null;
+}
+
+function parseBoolean(rawValue: unknown): boolean | null {
+  const value = readQueryString(rawValue);
+  if (value === null) {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true") {
+    return true;
+  }
+
+  if (normalized === "false") {
+    return false;
   }
 
   return null;

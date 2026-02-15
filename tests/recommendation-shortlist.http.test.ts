@@ -14,14 +14,16 @@ test("buildShortlistQuery parses and normalizes query parameters", () => {
     limit: "5",
     lookbackMin: "180",
     minScore: "72.5",
-    symbol: " soxl "
+    symbol: " soxl ",
+    uniqueSymbol: "false"
   });
 
   assert.deepEqual(query, {
     limit: 5,
     lookbackMin: 180,
     minScore: 72.5,
-    symbol: "SOXL"
+    symbol: "SOXL",
+    uniqueSymbol: false
   });
 });
 
@@ -80,7 +82,8 @@ test("registerRecommendationShortlistRoute returns filtered shortlist payload", 
       query: {
         limit: "3",
         minScore: "80",
-        symbol: "soxl"
+        symbol: "soxl",
+        uniqueSymbol: "true"
       }
     },
     {
@@ -101,6 +104,7 @@ test("registerRecommendationShortlistRoute returns filtered shortlist payload", 
   assert.equal(responsePayload.appliedFilters.limit, 3);
   assert.equal(responsePayload.appliedFilters.minScore, 80);
   assert.equal(responsePayload.appliedFilters.symbol, "SOXL");
+  assert.equal(responsePayload.appliedFilters.uniqueSymbol, true);
   assert.equal(responsePayload.recommendations[0]?.recommendationId, "rec-1");
 });
 

@@ -2,6 +2,7 @@ import { loadRuntimeConfig, type RuntimeConfig } from "@app/config";
 import type { RecommendationShortlistQuery } from "@app/core";
 import type { RecommendationProducedEvent } from "@app/domain";
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
+import Redis from "ioredis";
 
 import { RecommendationShortlistService } from "./recommendation-shortlist.service";
 
@@ -17,6 +18,7 @@ export class SlackShortlistNotifierService implements OnModuleInit, OnModuleDest
   private timer: NodeJS.Timeout | null = null;
   private isNotifying = false;
   private lastMessageSignature: string | null = null;
+  private redisClient: Redis | null = null;
 
   constructor(
     private readonly recommendationShortlistService: RecommendationShortlistService,
@@ -55,6 +57,12 @@ export class SlackShortlistNotifierService implements OnModuleInit, OnModuleDest
       clearInterval(this.timer);
       this.timer = null;
     }
+
+    if (this.redisClient !== null) {
+      const client = this.redisClient;
+      this.redisClient = null;
+      await client.quit();
+    }
   }
 
   async notifyOnce(): Promise<boolean> {
@@ -77,7 +85,8 @@ export class SlackShortlistNotifierService implements OnModuleInit, OnModuleDest
       }
 
       const signature = buildSignature(recommendations);
-      if (signature === this.lastMessageSignature) {
+      const persistedSignature = await this.readPersistedSignature();
+      if (signature === this.lastMessageSignature || signature === persistedSignature) {
         return false;
       }
 
@@ -85,6 +94,7 @@ export class SlackShortlistNotifierService implements OnModuleInit, OnModuleDest
       await this.postSlack(this.webhookUrl, { text }, this.config.SLACK_REQUEST_TIMEOUT_MS);
 
       this.lastMessageSignature = signature;
+      await this.persistSignature(signature);
       this.logger.log(`Slack shortlist sent candidateCount=${recommendations.length}`);
       return true;
     } catch (error) {
@@ -99,7 +109,9 @@ export class SlackShortlistNotifierService implements OnModuleInit, OnModuleDest
   private buildShortlistQuery(): RecommendationShortlistQuery {
     const query: RecommendationShortlistQuery = {
       limit: this.config.SLACK_SHORTLIST_NOTIFY_LIMIT,
-      minScore: this.config.SLACK_SHORTLIST_NOTIFY_MIN_SCORE
+      minScore: this.config.SLACK_SHORTLIST_NOTIFY_MIN_SCORE,
+      lookbackMin: this.config.SLACK_SHORTLIST_NOTIFY_LOOKBACK_MIN,
+      uniqueSymbol: this.config.RECOMMENDATION_SHORTLIST_DEFAULT_UNIQUE_SYMBOL
     };
 
     const symbol = normalizeSymbol(this.config.SLACK_SHORTLIST_NOTIFY_SYMBOL);
@@ -108,6 +120,62 @@ export class SlackShortlistNotifierService implements OnModuleInit, OnModuleDest
     }
 
     return query;
+  }
+
+  private async readPersistedSignature(): Promise<string | null> {
+    const client = this.getRedisClient();
+    if (client === null) {
+      return null;
+    }
+
+    try {
+      const value = await client.get(this.config.SLACK_SHORTLIST_SIGNATURE_KEY);
+      return typeof value === "string" && value.length > 0 ? value : null;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "unknown redis read error";
+      this.logger.warn(`Slack signature read failed: ${message}`);
+      return null;
+    }
+  }
+
+  private async persistSignature(signature: string): Promise<void> {
+    const client = this.getRedisClient();
+    if (client === null) {
+      return;
+    }
+
+    try {
+      await client.set(
+        this.config.SLACK_SHORTLIST_SIGNATURE_KEY,
+        signature,
+        "EX",
+        this.config.SLACK_SHORTLIST_SIGNATURE_TTL_SEC
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "unknown redis write error";
+      this.logger.warn(`Slack signature persist failed: ${message}`);
+    }
+  }
+
+  private getRedisClient(): Redis | null {
+    if (this.redisClient !== null) {
+      return this.redisClient;
+    }
+
+    try {
+      this.redisClient = new Redis({
+        host: this.config.REDIS_HOST,
+        port: this.config.REDIS_PORT,
+        maxRetriesPerRequest: 2,
+        enableReadyCheck: true
+      });
+
+      return this.redisClient;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "unknown redis init error";
+      this.logger.warn(`Slack signature redis disabled: ${message}`);
+      return null;
+    }
   }
 }
 

@@ -17,6 +17,7 @@ export interface RecommendationStoreOptions {
   defaultLimit: number;
   defaultLookbackMin: number;
   defaultMinScore: number;
+  defaultUniqueSymbol: boolean;
 }
 
 export interface RecommendationShortlistQuery {
@@ -24,6 +25,7 @@ export interface RecommendationShortlistQuery {
   lookbackMin?: number;
   minScore?: number;
   symbol?: string;
+  uniqueSymbol?: boolean;
 }
 
 export class RecommendationStore {
@@ -50,6 +52,7 @@ export class RecommendationStore {
     const lookbackMin = clampInt(query.lookbackMin ?? this.options.defaultLookbackMin, 1, 7 * 24 * 60);
     const minScore = clampNumber(query.minScore ?? this.options.defaultMinScore, 0, 100);
     const symbolFilter = normalizeSymbol(query.symbol);
+    const uniqueSymbol = query.uniqueSymbol ?? this.options.defaultUniqueSymbol;
 
     const maxItems = clampInt(this.options.maxItems, 1, 10000);
     const shortlistScanSize = clampInt(this.options.shortlistScanSize, limit, maxItems);
@@ -57,6 +60,7 @@ export class RecommendationStore {
 
     const cutoffTimestampMs = Date.now() - lookbackMin * 60_000;
     const shortlist: RecommendationProducedEvent[] = [];
+    const seenSymbols = new Set<string>();
 
     for (const rawItem of rawItems) {
       const recommendation = parseRecommendation(rawItem);
@@ -77,11 +81,24 @@ export class RecommendationStore {
       }
 
       const createdAtMs = Date.parse(recommendation.createdAt);
-      if (Number.isFinite(createdAtMs) && createdAtMs < cutoffTimestampMs) {
+      if (!Number.isFinite(createdAtMs) || createdAtMs < cutoffTimestampMs) {
         continue;
       }
 
+      if (uniqueSymbol) {
+        const normalizedSymbol = recommendation.symbol.toUpperCase();
+        if (seenSymbols.has(normalizedSymbol)) {
+          continue;
+        }
+
+        seenSymbols.add(normalizedSymbol);
+      }
+
       shortlist.push(recommendation);
+
+      if (shortlist.length >= limit && uniqueSymbol) {
+        break;
+      }
     }
 
     shortlist.sort((left, right) => {
@@ -135,16 +152,26 @@ function parseRecommendation(rawValue: string): RecommendationProducedEvent | nu
     }
 
     const decision = readString(parsed, "decision");
+    const recommendationId = readString(parsed, "recommendationId");
     const symbol = readString(parsed, "symbol");
     const createdAt = readString(parsed, "createdAt");
+    const rationale = readString(parsed, "rationale");
+    const confidence = readNumber(parsed, "confidence");
     const scoreBreakdown = readRecord(parsed, "scoreBreakdown");
     const totalScore = scoreBreakdown === null ? null : readNumber(scoreBreakdown, "totalScore");
+    const createdAtMs = createdAt === null ? Number.NaN : Date.parse(createdAt);
 
     if (
       (decision !== "BUY" && decision !== "WAIT") ||
+      recommendationId === null ||
       symbol === null ||
       createdAt === null ||
-      totalScore === null
+      !Number.isFinite(createdAtMs) ||
+      rationale === null ||
+      confidence === null ||
+      totalScore === null ||
+      totalScore < 0 ||
+      totalScore > 100
     ) {
       return null;
     }

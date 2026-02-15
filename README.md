@@ -69,12 +69,13 @@ npm run dev:reconciler
 - LLM timeout/failure/schema mismatch always falls back to `WAIT`
 - Builds news digest from `ANALYST_NEWS_MOCK_ITEMS_JSON` and applies sentiment-weighted recommendation scoring
 - Emits `recommendationQueue` for recommendation-first workflow
+- Screening can ignore live-mode gating via `ANALYST_SCREENING_IGNORE_MODE_GUARD` (default: true)
 - Emits `orderIntentQueue` only when `ANALYST_EMIT_ORDER_INTENT=true`, decision is `BUY`, and hard risk verdict is `PASS`
 
 ## Recommendation shortlist API
 
 - Reconciler exposes `GET /recommendations/top` for top BUY candidates from recent recommendation history
-- Query filters are supported: `limit`, `lookbackMin`, `minScore`, `symbol`
+- Query filters are supported: `limit`, `lookbackMin`, `minScore`, `symbol`, `uniqueSymbol`
 - Backed by Redis list storage using `RECOMMENDATION_STORE_KEY`
 - Defaults are controlled by:
   - `RECOMMENDATION_SHORTLIST_DEFAULT_LIMIT`
@@ -89,7 +90,10 @@ npm run dev:reconciler
   - `SLACK_SHORTLIST_NOTIFY_INTERVAL_SEC`
   - `SLACK_SHORTLIST_NOTIFY_LIMIT`
   - `SLACK_SHORTLIST_NOTIFY_MIN_SCORE`
+  - `SLACK_SHORTLIST_NOTIFY_LOOKBACK_MIN`
   - `SLACK_SHORTLIST_NOTIFY_SYMBOL`
+  - `SLACK_SHORTLIST_SIGNATURE_KEY`
+  - `SLACK_SHORTLIST_SIGNATURE_TTL_SEC`
 
 ## Trader worker baseline
 

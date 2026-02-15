@@ -16,7 +16,8 @@ export class RecommendationShortlistService implements OnModuleDestroy {
     shortlistScanSize: this.config.RECOMMENDATION_SHORTLIST_SCAN_SIZE,
     defaultLimit: this.config.RECOMMENDATION_SHORTLIST_DEFAULT_LIMIT,
     defaultLookbackMin: this.config.RECOMMENDATION_SHORTLIST_DEFAULT_LOOKBACK_MIN,
-    defaultMinScore: this.config.RECOMMENDATION_SHORTLIST_DEFAULT_MIN_SCORE
+    defaultMinScore: this.config.RECOMMENDATION_SHORTLIST_DEFAULT_MIN_SCORE,
+    defaultUniqueSymbol: this.config.RECOMMENDATION_SHORTLIST_DEFAULT_UNIQUE_SYMBOL
   });
 
   async getTopBuyCandidates(query: RecommendationShortlistQuery = {}): Promise<RecommendationProducedEvent[]> {

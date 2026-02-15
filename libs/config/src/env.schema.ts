@@ -45,6 +45,7 @@ const envSchema = z.object({
   RECOMMENDATION_SHORTLIST_DEFAULT_LIMIT: z.coerce.number().int().positive().default(10),
   RECOMMENDATION_SHORTLIST_DEFAULT_LOOKBACK_MIN: z.coerce.number().int().positive().default(360),
   RECOMMENDATION_SHORTLIST_DEFAULT_MIN_SCORE: z.coerce.number().min(0).max(100).default(65),
+  RECOMMENDATION_SHORTLIST_DEFAULT_UNIQUE_SYMBOL: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
   ORDER_INTENT_QUEUE_NAME: z.string().min(1).default("orderIntentQueue"),
   MARKET_UNIVERSE: z.string().min(1).default("SOXL,TQQQ"),
   TRIGGER_COOLDOWN_SEC: z.coerce.number().int().nonnegative().default(300),
@@ -72,7 +73,10 @@ const envSchema = z.object({
   SLACK_SHORTLIST_NOTIFY_INTERVAL_SEC: z.coerce.number().int().positive().default(300),
   SLACK_SHORTLIST_NOTIFY_LIMIT: z.coerce.number().int().positive().default(5),
   SLACK_SHORTLIST_NOTIFY_MIN_SCORE: z.coerce.number().min(0).max(100).default(70),
+  SLACK_SHORTLIST_NOTIFY_LOOKBACK_MIN: z.coerce.number().int().positive().default(180),
   SLACK_SHORTLIST_NOTIFY_SYMBOL: z.string().default(""),
+  SLACK_SHORTLIST_SIGNATURE_KEY: z.string().min(1).default("slackShortlistLastSignature"),
+  SLACK_SHORTLIST_SIGNATURE_TTL_SEC: z.coerce.number().int().positive().default(21600),
   OPENAI_API_KEY: z.string().default("")
 });
 

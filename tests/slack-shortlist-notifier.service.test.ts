@@ -32,7 +32,8 @@ test("notifyOnce posts shortlist to Slack and deduplicates identical payload", a
     SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/mock",
     SLACK_SHORTLIST_NOTIFY_LIMIT: "3",
     SLACK_SHORTLIST_NOTIFY_MIN_SCORE: "80",
-    SLACK_SHORTLIST_NOTIFY_SYMBOL: "soxl"
+    SLACK_SHORTLIST_NOTIFY_SYMBOL: "soxl",
+    SLACK_SHORTLIST_SIGNATURE_KEY: `test-shortlist-signature-${Date.now()}`
   });
 
   const notifier = new SlackShortlistNotifierService(shortlistService, postSlack, config);
@@ -46,9 +47,13 @@ test("notifyOnce posts shortlist to Slack and deduplicates identical payload", a
   assert.equal(sentPayloads[0]?.includes("SOXL score=88.00"), true);
   assert.deepEqual(capturedQueries[0], {
     limit: 3,
+    lookbackMin: 180,
     minScore: 80,
-    symbol: "SOXL"
+    symbol: "SOXL",
+    uniqueSymbol: true
   });
+
+  await notifier.onModuleDestroy();
 });
 
 test("notifyOnce skips when notifier is disabled", async () => {
@@ -73,6 +78,7 @@ test("notifyOnce skips when notifier is disabled", async () => {
 
   assert.equal(sent, false);
   assert.equal(postCalled, false);
+  await notifier.onModuleDestroy();
 });
 
 test("buildSlackShortlistMessage renders ranked candidate lines", () => {

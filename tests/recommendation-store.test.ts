@@ -19,7 +19,8 @@ test("stores recommendations and returns top BUY shortlist", async () => {
   const shortlist = await store.listTopBuyCandidates({
     limit: 2,
     lookbackMin: 60,
-    minScore: 65
+    minScore: 65,
+    uniqueSymbol: false
   });
 
   assert.deepEqual(
@@ -54,6 +55,27 @@ test("filters outdated or malformed recommendation payloads", async () => {
 
   assert.equal(shortlist.length, 1);
   assert.equal(shortlist[0]?.recommendationId, "recent");
+});
+
+test("returns one candidate per symbol when uniqueSymbol is enabled", async () => {
+  const client = new InMemoryRecommendationClient();
+  const store = new RecommendationStore(createStoreOptions(), () => client);
+
+  await store.save(createRecommendation({ recommendationId: "soxl-older", decision: "BUY", totalScore: 82 }));
+  await store.save(createRecommendation({ recommendationId: "tqqq-top", decision: "BUY", totalScore: 91, symbol: "TQQQ" }));
+  await store.save(createRecommendation({ recommendationId: "soxl-top", decision: "BUY", totalScore: 88 }));
+
+  const shortlist = await store.listTopBuyCandidates({
+    limit: 5,
+    lookbackMin: 60,
+    minScore: 70,
+    uniqueSymbol: true
+  });
+
+  assert.deepEqual(
+    shortlist.map((item) => item.recommendationId),
+    ["tqqq-top", "soxl-top"]
+  );
 });
 
 class InMemoryRecommendationClient implements RecommendationStoreClient {
@@ -104,7 +126,8 @@ function createStoreOptions(): RecommendationStoreOptions {
     shortlistScanSize: 50,
     defaultLimit: 10,
     defaultLookbackMin: 60,
-    defaultMinScore: 65
+    defaultMinScore: 65,
+    defaultUniqueSymbol: true
   };
 }
 
@@ -113,14 +136,16 @@ function createRecommendation(overrides: {
   decision: "BUY" | "WAIT";
   totalScore: number;
   createdAt?: string;
+  symbol?: string;
 }): RecommendationProducedEvent {
   const createdAt = overrides.createdAt ?? new Date().toISOString();
+  const symbol = overrides.symbol ?? "SOXL";
 
   return {
     recommendationId: overrides.recommendationId,
     decisionId: `decision-${overrides.recommendationId}`,
     correlationId: `correlation-${overrides.recommendationId}`,
-    symbol: "SOXL",
+    symbol,
     timeframe: "1m",
     asOf: createdAt,
     decision: overrides.decision,
@@ -137,7 +162,7 @@ function createRecommendation(overrides: {
       totalScore: overrides.totalScore
     },
     newsDigest: {
-      symbol: "SOXL",
+      symbol,
       asOf: createdAt,
       newsCount: 1,
       averageSentiment: 0.4,
