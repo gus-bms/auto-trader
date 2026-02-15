@@ -1,10 +1,12 @@
 import { loadRuntimeConfig } from "@app/config";
 import type { TradeSignalEvent } from "@app/domain";
-import { AnalystDecisionEngine, LlmAnalystClient } from "@app/llm-analyst";
+import { AnalystDecisionEngine, LlmAnalystClient, RecommendationScoringEngine } from "@app/llm-analyst";
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
 import { Worker, type Job } from "bullmq";
 
+import { NewsIngestService } from "./news-ingest.service";
 import { OrderIntentPublisher } from "./order-intent.publisher";
+import { RecommendationPublisher } from "./recommendation.publisher";
 
 @Injectable()
 export class AnalystWorkerService implements OnModuleInit, OnModuleDestroy {
@@ -19,10 +21,23 @@ export class AnalystWorkerService implements OnModuleInit, OnModuleDestroy {
   });
 
   private readonly decisionEngine = new AnalystDecisionEngine(this.llmClient, this.config);
+  private readonly recommendationScoringEngine = new RecommendationScoringEngine(this.config);
 
   private worker: Worker | null = null;
 
-  constructor(private readonly orderIntentPublisher: OrderIntentPublisher) {
+  constructor(
+    private readonly newsIngestService: NewsIngestService,
+    private readonly recommendationPublisher: RecommendationPublisher,
+    private readonly orderIntentPublisher: OrderIntentPublisher
+  ) {
+    if (!(newsIngestService instanceof NewsIngestService)) {
+      throw new Error("NewsIngestService provider wiring is invalid");
+    }
+
+    if (!(recommendationPublisher instanceof RecommendationPublisher)) {
+      throw new Error("RecommendationPublisher provider wiring is invalid");
+    }
+
     if (!(orderIntentPublisher instanceof OrderIntentPublisher)) {
       throw new Error("OrderIntentPublisher provider wiring is invalid");
     }
@@ -73,7 +88,16 @@ export class AnalystWorkerService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    const evaluation = await this.decisionEngine.evaluateTradeSignal(signalEvent);
+    const nowMs = Date.now();
+    const newsDigest = this.newsIngestService.getNewsDigest(signalEvent.symbol, signalEvent.timestamp);
+    const evaluation = await this.decisionEngine.evaluateTradeSignal(signalEvent, nowMs, newsDigest);
+    const recommendationEvent = this.recommendationScoringEngine.buildRecommendation({
+      signalEvent,
+      decisionRecord: evaluation.decisionRecord,
+      newsDigest,
+      riskEvaluation: evaluation.riskEvaluation,
+      nowMs
+    });
 
     this.logger.log(
       `decision decisionId=${evaluation.decisionRecord.decisionId} symbol=${signalEvent.symbol} decision=${evaluation.decisionRecord.decision} confidence=${evaluation.decisionRecord.confidence} source=${evaluation.decisionRecord.source}`
@@ -82,6 +106,16 @@ export class AnalystWorkerService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(
       `risk decisionId=${evaluation.decisionRecord.decisionId} verdict=${evaluation.riskEvaluation.verdict} blockCode=${evaluation.riskEvaluation.blockCode ?? "NONE"}`
     );
+
+    await this.recommendationPublisher.publish(recommendationEvent);
+
+    this.logger.log(
+      `recommendation recommendationId=${recommendationEvent.recommendationId} symbol=${recommendationEvent.symbol} decision=${recommendationEvent.decision} score=${recommendationEvent.scoreBreakdown.totalScore.toFixed(2)} newsCount=${recommendationEvent.newsDigest.newsCount}`
+    );
+
+    if (this.config.ANALYST_EMIT_ORDER_INTENT !== "true") {
+      return;
+    }
 
     if (evaluation.orderIntentEvent === null) {
       return;

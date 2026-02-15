@@ -4,6 +4,7 @@ import type {
   AnalystDecisionOutput,
   AnalystDecisionRecord,
   AnalystLlmInput,
+  NewsDigest,
   OrderIntentEvent,
   RiskEvaluationResult,
   TradeSignalEvent
@@ -27,9 +28,10 @@ export class AnalystDecisionEngine {
 
   async evaluateTradeSignal(
     signalEvent: TradeSignalEvent,
-    nowMs: number = Date.now()
+    nowMs: number = Date.now(),
+    newsDigest?: NewsDigest
   ): Promise<AnalystDecisionEvaluation> {
-    const llmInput = buildLlmInput(signalEvent);
+    const llmInput = buildLlmInput(signalEvent, newsDigest);
 
     let decisionOutput: AnalystDecisionOutput;
     let source: AnalystDecisionRecord["source"] = "llm";
@@ -94,8 +96,8 @@ export class AnalystDecisionEngine {
   }
 }
 
-function buildLlmInput(signalEvent: TradeSignalEvent): AnalystLlmInput {
-  return {
+function buildLlmInput(signalEvent: TradeSignalEvent, newsDigest?: NewsDigest): AnalystLlmInput {
+  const llmInput: AnalystLlmInput = {
     symbol: signalEvent.symbol,
     price: signalEvent.candleSnapshot.close,
     timestamp: signalEvent.timestamp,
@@ -111,6 +113,16 @@ function buildLlmInput(signalEvent: TradeSignalEvent): AnalystLlmInput {
     },
     triggerType: signalEvent.triggerType
   };
+
+  if (newsDigest !== undefined) {
+    llmInput.recentNewsSummary = {
+      newsCount: newsDigest.newsCount,
+      averageSentiment: newsDigest.averageSentiment,
+      headlines: newsDigest.topHeadlines.map((item) => item.headline)
+    };
+  }
+
+  return llmInput;
 }
 
 function createWaitFallbackDecision(reason: string): AnalystDecisionOutput {

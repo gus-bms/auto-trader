@@ -15,6 +15,11 @@ export interface AnalystLlmInput {
     spreadBps: string;
   };
   triggerType: "RSI_VOLUME_SPIKE";
+  recentNewsSummary?: {
+    newsCount: number;
+    averageSentiment: number;
+    headlines: string[];
+  };
 }
 
 export interface AnalystDecisionOutput {

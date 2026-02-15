@@ -65,7 +65,9 @@ npm run dev:reconciler
 
 - Consumes `tradeSignalQueue` and validates strict LLM output schema (`BUY` or `WAIT`)
 - LLM timeout/failure/schema mismatch always falls back to `WAIT`
-- Emits `orderIntentQueue` only when decision is `BUY` and hard risk verdict is `PASS`
+- Builds news digest from `ANALYST_NEWS_MOCK_ITEMS_JSON` and applies sentiment-weighted recommendation scoring
+- Emits `recommendationQueue` for recommendation-first workflow
+- Emits `orderIntentQueue` only when `ANALYST_EMIT_ORDER_INTENT=true`, decision is `BUY`, and hard risk verdict is `PASS`
 
 ## Trader worker baseline
 
