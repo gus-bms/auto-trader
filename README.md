@@ -74,11 +74,22 @@ npm run dev:reconciler
 ## Recommendation shortlist API
 
 - Reconciler exposes `GET /recommendations/top` for top BUY candidates from recent recommendation history
+- Query filters are supported: `limit`, `lookbackMin`, `minScore`, `symbol`
 - Backed by Redis list storage using `RECOMMENDATION_STORE_KEY`
 - Defaults are controlled by:
   - `RECOMMENDATION_SHORTLIST_DEFAULT_LIMIT`
   - `RECOMMENDATION_SHORTLIST_DEFAULT_LOOKBACK_MIN`
   - `RECOMMENDATION_SHORTLIST_DEFAULT_MIN_SCORE`
+
+## Slack shortlist notifier
+
+- Reconciler can post top BUY candidates to Slack webhook on interval
+- Enable with `SLACK_SHORTLIST_NOTIFY_ENABLED=true` and set `SLACK_WEBHOOK_URL`
+- Tuning keys:
+  - `SLACK_SHORTLIST_NOTIFY_INTERVAL_SEC`
+  - `SLACK_SHORTLIST_NOTIFY_LIMIT`
+  - `SLACK_SHORTLIST_NOTIFY_MIN_SCORE`
+  - `SLACK_SHORTLIST_NOTIFY_SYMBOL`
 
 ## Trader worker baseline
 

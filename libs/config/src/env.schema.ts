@@ -65,6 +65,13 @@ const envSchema = z.object({
   TRADER_AVAILABLE_CASH_USD: decimalLikeString.default("100000"),
   TRADER_DAILY_PNL_USD: signedDecimalLikeString.default("0"),
   TRADER_LIVE_ORDER_ENABLED: z.enum(["true", "false"]).default("false"),
+  SLACK_WEBHOOK_URL: z.string().default(""),
+  SLACK_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+  SLACK_SHORTLIST_NOTIFY_ENABLED: z.enum(["true", "false"]).default("false"),
+  SLACK_SHORTLIST_NOTIFY_INTERVAL_SEC: z.coerce.number().int().positive().default(300),
+  SLACK_SHORTLIST_NOTIFY_LIMIT: z.coerce.number().int().positive().default(5),
+  SLACK_SHORTLIST_NOTIFY_MIN_SCORE: z.coerce.number().min(0).max(100).default(70),
+  SLACK_SHORTLIST_NOTIFY_SYMBOL: z.string().default(""),
   OPENAI_API_KEY: z.string().default("")
 });
 
