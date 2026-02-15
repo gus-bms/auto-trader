@@ -46,6 +46,13 @@ npm run dev:reconciler
 - Invalid schema or 4xx responses fail fast and trigger safe-mode hook
 - Token caching uses expiry skew to reduce near-expiration order risk
 
+## Market watcher baseline
+
+- Incoming snapshots are blocked when older than `MAX_MARKET_DATA_AGE_SEC`
+- Trigger rule is currently `RSI < 30 && volumeChangeRatePct >= 200`
+- Symbol cooldown uses `TRIGGER_COOLDOWN_SEC` to suppress repeated signal spam
+- Triggered events are published to BullMQ queue `TRADE_SIGNAL_QUEUE_NAME`
+
 ## Build
 
 ```bash

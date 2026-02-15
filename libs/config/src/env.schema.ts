@@ -22,7 +22,13 @@ const envSchema = z.object({
   KIS_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
   KIS_AUTH_MAX_RETRY_COUNT: z.coerce.number().int().min(0).max(10).default(2),
   KIS_AUTH_RETRY_BACKOFF_MS: z.coerce.number().int().nonnegative().default(300),
-  KIS_AUTH_EXPIRY_SKEW_SEC: z.coerce.number().int().nonnegative().default(30)
+  KIS_AUTH_EXPIRY_SKEW_SEC: z.coerce.number().int().nonnegative().default(30),
+  REDIS_HOST: z.string().min(1).default("127.0.0.1"),
+  REDIS_PORT: z.coerce.number().int().positive().default(6379),
+  TRADE_SIGNAL_QUEUE_NAME: z.string().min(1).default("tradeSignalQueue"),
+  MARKET_UNIVERSE: z.string().min(1).default("SOXL,TQQQ"),
+  TRIGGER_COOLDOWN_SEC: z.coerce.number().int().nonnegative().default(300),
+  STALENESS_CHECK_INTERVAL_SEC: z.coerce.number().int().positive().default(15)
 });
 
 export type RuntimeConfig = z.infer<typeof envSchema>;
