@@ -83,6 +83,20 @@ npm run dev:reconciler
   - `RECOMMENDATION_SHORTLIST_DEFAULT_LOOKBACK_MIN`
   - `RECOMMENDATION_SHORTLIST_DEFAULT_MIN_SCORE`
 
+## Demo signal (no KIS)
+
+- Enqueue a synthetic trade signal directly to `tradeSignalQueue`:
+
+```bash
+npm run demo:enqueue-signal
+```
+
+- Custom example:
+
+```bash
+npm run demo:enqueue-signal -- --symbol SOXL --rsi 26.8 --volume-change-pct 280 --trigger-score 92
+```
+
 ## Slack shortlist notifier
 
 - Reconciler can post top BUY candidates to Slack webhook on interval

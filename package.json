@@ -17,6 +17,7 @@
     "start:analyst": "node --env-file-if-exists=.env dist/apps/analyst-worker/src/main.js",
     "start:trader": "node --env-file-if-exists=.env dist/apps/trader/src/main.js",
     "start:reconciler": "node --env-file-if-exists=.env dist/apps/reconciler/src/main.js",
+    "demo:enqueue-signal": "tsx --env-file-if-exists=.env scripts/enqueue-demo-signal.ts",
     "lint": "npm run typecheck",
     "test": "tsx --test tests/*.test.ts"
   },
