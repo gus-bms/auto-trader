@@ -1,5 +1,5 @@
 import { loadRuntimeConfig } from "@app/config";
-import { KisWebSocketSession } from "@app/kis-adapter";
+import { KisApiError, KisApprovalClient, KisConfigError, KisWebSocketSession } from "@app/kis-adapter";
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
 
 import { KisRawFrameParser } from "./kis-raw-frame.parser";
@@ -13,14 +13,14 @@ export class KisMarketStreamService implements OnModuleInit, OnModuleDestroy {
 
   private session: KisWebSocketSession | null = null;
 
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
     if (this.config.KIS_WS_ENABLED !== "true") {
       this.logger.log("KIS WebSocket stream disabled by config.");
       return;
     }
 
-    if (this.config.KIS_WS_APPROVAL_KEY.trim().length === 0) {
-      this.logger.warn("KIS_WS_ENABLED is true but KIS_WS_APPROVAL_KEY is empty. Stream is not started.");
+    const approvalKey = await this.resolveApprovalKey();
+    if (approvalKey === null) {
       return;
     }
 
@@ -36,7 +36,7 @@ export class KisMarketStreamService implements OnModuleInit, OnModuleDestroy {
 
     this.session = new KisWebSocketSession({
       wsUrl: this.config.KIS_WS_URL,
-      approvalKey: this.config.KIS_WS_APPROVAL_KEY,
+      approvalKey,
       customerType: this.config.KIS_WS_CUSTOMER_TYPE,
       reconnectBaseMs: this.config.KIS_WS_RECONNECT_BASE_MS,
       reconnectMaxMs: this.config.KIS_WS_RECONNECT_MAX_MS,
@@ -55,6 +55,44 @@ export class KisMarketStreamService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.session.start(subscriptions);
+  }
+
+  private async resolveApprovalKey(): Promise<string | null> {
+    const configuredApprovalKey = this.config.KIS_WS_APPROVAL_KEY.trim();
+    if (configuredApprovalKey.length > 0) {
+      return configuredApprovalKey;
+    }
+
+    const approvalClient = new KisApprovalClient({
+      appKey: this.config.KIS_APP_KEY,
+      appSecret: this.config.KIS_APP_SECRET,
+      approvalUrl: this.config.KIS_APPROVAL_URL,
+      requestTimeoutMs: this.config.KIS_REQUEST_TIMEOUT_MS,
+      maxRetryCount: this.config.KIS_AUTH_MAX_RETRY_COUNT,
+      retryBackoffMs: this.config.KIS_AUTH_RETRY_BACKOFF_MS
+    });
+
+    try {
+      const fetchedApprovalKey = await approvalClient.getApprovalKey();
+      this.logger.log("KIS WebSocket approval key fetched from REST API.");
+      return fetchedApprovalKey;
+    } catch (error) {
+      if (error instanceof KisConfigError) {
+        this.logger.warn(
+          "KIS websocket bootstrap skipped: provide KIS_WS_APPROVAL_KEY or configure KIS_APP_KEY/KIS_APP_SECRET."
+        );
+        return null;
+      }
+
+      if (error instanceof KisApiError) {
+        this.logger.error(`KIS approval key request failed: statusCode=${error.statusCode} message=${error.message}`);
+        return null;
+      }
+
+      const message = error instanceof Error ? error.message : "Unknown approval key error";
+      this.logger.error(`KIS approval key request failed: ${message}`);
+      return null;
+    }
   }
 
   onModuleDestroy(): void {

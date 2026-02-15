@@ -17,6 +17,7 @@ const envSchema = z.object({
   MAX_ORDER_NOTIONAL_USD: decimalLikeString.default("100"),
   KILL_SWITCH_ON: z.enum(["true", "false"]).default("false"),
   KIS_TOKEN_URL: z.string().url().default("https://openapi.koreainvestment.com:9443/oauth2/tokenP"),
+  KIS_APPROVAL_URL: z.string().url().default("https://openapi.koreainvestment.com:9443/oauth2/Approval"),
   KIS_APP_KEY: z.string().default(""),
   KIS_APP_SECRET: z.string().default(""),
   KIS_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),

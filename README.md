@@ -49,7 +49,8 @@ npm run dev:reconciler
 ## KIS websocket baseline
 
 - Session manager supports exponential reconnect and automatic re-subscribe
-- Stream startup is gated by `KIS_WS_ENABLED=true` and `KIS_WS_APPROVAL_KEY`
+- Stream startup is gated by `KIS_WS_ENABLED=true` and approval key availability
+- If `KIS_WS_APPROVAL_KEY` is empty, approval key is auto-fetched via `KIS_APPROVAL_URL`
 - Raw frame parser converts `H0STCNT0` / `HDFSCNT0` payloads into internal market snapshots
 
 ## Market watcher baseline
