@@ -1,0 +1,132 @@
+import { randomUUID } from "node:crypto";
+
+import type {
+  AnalystDecisionOutput,
+  AnalystDecisionRecord,
+  AnalystLlmInput,
+  OrderIntentEvent,
+  RiskEvaluationResult,
+  TradeSignalEvent
+} from "@app/domain";
+import type { RuntimeConfig } from "@app/config";
+import { evaluateEntryRisk } from "@app/risk";
+
+import type { LlmAnalystClient } from "./llm-analyst.client";
+
+export interface AnalystDecisionEvaluation {
+  decisionRecord: AnalystDecisionRecord;
+  riskEvaluation: RiskEvaluationResult;
+  orderIntentEvent: OrderIntentEvent | null;
+}
+
+export class AnalystDecisionEngine {
+  constructor(
+    private readonly llmClient: Pick<LlmAnalystClient, "analyze">,
+    private readonly config: RuntimeConfig
+  ) {}
+
+  async evaluateTradeSignal(
+    signalEvent: TradeSignalEvent,
+    nowMs: number = Date.now()
+  ): Promise<AnalystDecisionEvaluation> {
+    const llmInput = buildLlmInput(signalEvent);
+
+    let decisionOutput: AnalystDecisionOutput;
+    let source: AnalystDecisionRecord["source"] = "llm";
+
+    try {
+      decisionOutput = await this.llmClient.analyze(llmInput);
+    } catch (error) {
+      source = "fallback";
+      const message = error instanceof Error ? error.message : "LLM unknown failure";
+      decisionOutput = createWaitFallbackDecision(message);
+    }
+
+    const decisionRecord: AnalystDecisionRecord = {
+      decisionId: randomUUID(),
+      correlationId: signalEvent.correlationId,
+      source,
+      llmInput,
+      decision: decisionOutput.decision,
+      confidence: decisionOutput.confidence,
+      riskLevel: decisionOutput.riskLevel,
+      rationale: decisionOutput.rationale,
+      createdAt: new Date(nowMs).toISOString()
+    };
+
+    const marketDataAgeSec = calculateMarketDataAgeSec(signalEvent.timestamp, nowMs);
+    const riskEvaluation = evaluateEntryRisk(
+      {
+        marketDataAgeSec,
+        availableCashUsd: this.config.ANALYST_AVAILABLE_CASH_USD,
+        requestedNotionalUsd: this.config.ANALYST_ORDER_NOTIONAL_USD,
+        dailyPnlUsd: this.config.ANALYST_DAILY_PNL_USD
+      },
+      this.config
+    );
+
+    if (decisionRecord.decision !== "BUY" || riskEvaluation.verdict !== "PASS") {
+      return {
+        decisionRecord,
+        riskEvaluation,
+        orderIntentEvent: null
+      };
+    }
+
+    const orderIntentEvent: OrderIntentEvent = {
+      decisionId: decisionRecord.decisionId,
+      correlationId: decisionRecord.correlationId,
+      symbol: signalEvent.symbol,
+      side: "BUY",
+      orderType: "BestLimit",
+      requestedNotionalUsd: this.config.ANALYST_ORDER_NOTIONAL_USD,
+      confidence: decisionRecord.confidence,
+      riskLevel: decisionRecord.riskLevel,
+      rationale: decisionRecord.rationale,
+      createdAt: decisionRecord.createdAt
+    };
+
+    return {
+      decisionRecord,
+      riskEvaluation,
+      orderIntentEvent
+    };
+  }
+}
+
+function buildLlmInput(signalEvent: TradeSignalEvent): AnalystLlmInput {
+  return {
+    symbol: signalEvent.symbol,
+    price: signalEvent.candleSnapshot.close,
+    timestamp: signalEvent.timestamp,
+    timeframe: signalEvent.timeframe,
+    computedIndicators: {
+      rsi: signalEvent.indicators.rsi,
+      volumeChangeRatePct: signalEvent.indicators.volumeChangeRatePct,
+      triggerScore: signalEvent.triggerScore
+    },
+    orderBookSummary: {
+      bidAskImbalanceRatio: signalEvent.orderBookSummary.bidAskImbalanceRatio,
+      spreadBps: signalEvent.orderBookSummary.spreadBps
+    },
+    triggerType: signalEvent.triggerType
+  };
+}
+
+function createWaitFallbackDecision(reason: string): AnalystDecisionOutput {
+  return {
+    decision: "WAIT",
+    confidence: 0,
+    riskLevel: "HIGH",
+    rationale: `LLM fallback WAIT: ${reason}`.slice(0, 300)
+  };
+}
+
+function calculateMarketDataAgeSec(eventTimestamp: string, nowMs: number): number {
+  const eventTimestampMs = Date.parse(eventTimestamp);
+  if (!Number.isFinite(eventTimestampMs)) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  return Math.max(0, Math.floor((nowMs - eventTimestampMs) / 1000));
+}

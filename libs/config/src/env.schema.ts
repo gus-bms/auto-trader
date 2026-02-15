@@ -5,6 +5,10 @@ const decimalLikeString = z
   .string()
   .regex(/^\d+(\.\d+)?$/, "Must be a non-negative decimal string");
 
+const signedDecimalLikeString = z
+  .string()
+  .regex(/^-?\d+(\.\d+)?$/, "Must be a signed decimal string");
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   APP_MODE: z.enum(tradingModeValues).default("paper"),
@@ -34,9 +38,18 @@ const envSchema = z.object({
   REDIS_HOST: z.string().min(1).default("127.0.0.1"),
   REDIS_PORT: z.coerce.number().int().positive().default(6379),
   TRADE_SIGNAL_QUEUE_NAME: z.string().min(1).default("tradeSignalQueue"),
+  ORDER_INTENT_QUEUE_NAME: z.string().min(1).default("orderIntentQueue"),
   MARKET_UNIVERSE: z.string().min(1).default("SOXL,TQQQ"),
   TRIGGER_COOLDOWN_SEC: z.coerce.number().int().nonnegative().default(300),
-  STALENESS_CHECK_INTERVAL_SEC: z.coerce.number().int().positive().default(15)
+  STALENESS_CHECK_INTERVAL_SEC: z.coerce.number().int().positive().default(15),
+  ANALYST_LLM_MODEL: z.string().min(1).default("gpt-4o-mini"),
+  ANALYST_LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(1500),
+  ANALYST_LLM_ENDPOINT: z.string().url().default("https://api.openai.com/v1/chat/completions"),
+  ANALYST_WORKER_CONCURRENCY: z.coerce.number().int().positive().default(2),
+  ANALYST_AVAILABLE_CASH_USD: decimalLikeString.default("100000"),
+  ANALYST_ORDER_NOTIONAL_USD: decimalLikeString.default("100"),
+  ANALYST_DAILY_PNL_USD: signedDecimalLikeString.default("0"),
+  OPENAI_API_KEY: z.string().default("")
 });
 
 export type RuntimeConfig = z.infer<typeof envSchema>;

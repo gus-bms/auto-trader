@@ -29,6 +29,7 @@ npm run dev:watcher
 Run other processes in separate terminals:
 
 ```bash
+npm run dev:analyst
 npm run dev:trader
 npm run dev:reconciler
 ```
@@ -59,6 +60,12 @@ npm run dev:reconciler
 - Trigger rule is currently `RSI < 30 && volumeChangeRatePct >= 200`
 - Symbol cooldown uses `TRIGGER_COOLDOWN_SEC` to suppress repeated signal spam
 - Triggered events are published to BullMQ queue `TRADE_SIGNAL_QUEUE_NAME`
+
+## Analyst worker baseline
+
+- Consumes `tradeSignalQueue` and validates strict LLM output schema (`BUY` or `WAIT`)
+- LLM timeout/failure/schema mismatch always falls back to `WAIT`
+- Emits `orderIntentQueue` only when decision is `BUY` and hard risk verdict is `PASS`
 
 ## Build
 
