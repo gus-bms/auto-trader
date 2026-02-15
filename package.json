@@ -16,7 +16,7 @@
     "start:trader": "node dist/apps/trader/src/main.js",
     "start:reconciler": "node dist/apps/reconciler/src/main.js",
     "lint": "npm run typecheck",
-    "test": "node --test"
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.3",

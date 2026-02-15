@@ -38,6 +38,13 @@ npm run dev:reconciler
 - `APP_MODE=paper`
 - `LIVE_MODE=false`
 - Entry risk gate blocks non-live orders by default
+- KIS auth bootstrap runs only when live mode guard passes
+
+## KIS auth baseline
+
+- Access token client includes timeout + exponential retry (429/5xx/network only)
+- Invalid schema or 4xx responses fail fast and trigger safe-mode hook
+- Token caching uses expiry skew to reduce near-expiration order risk
 
 ## Build
 

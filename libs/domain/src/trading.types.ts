@@ -28,3 +28,13 @@ export interface RiskEvaluationResult {
   blockCode: RiskBlockCode | null;
   details: Record<string, string>;
 }
+
+export const safeModeReasonValues = [
+  "AUTH_FAILURE",
+  "DATA_STALE",
+  "RECONCILE_MISMATCH",
+  "CIRCUIT_BREAKER",
+  "MANUAL_KILL_SWITCH"
+] as const;
+
+export type SafeModeReason = (typeof safeModeReasonValues)[number];

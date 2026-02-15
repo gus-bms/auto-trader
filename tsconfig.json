@@ -18,8 +18,10 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@app/core": ["libs/core/src/index.ts"],
       "@app/config": ["libs/config/src/index.ts"],
       "@app/domain": ["libs/domain/src/index.ts"],
+      "@app/kis-adapter": ["libs/kis-adapter/src/index.ts"],
       "@app/observability": ["libs/observability/src/index.ts"],
       "@app/risk": ["libs/risk/src/index.ts"]
     },

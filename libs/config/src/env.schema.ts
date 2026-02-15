@@ -1,6 +1,5 @@
-import { z } from "zod";
-
 import { tradingModeValues } from "@app/domain";
+import { z } from "zod";
 
 const decimalLikeString = z
   .string()
@@ -16,7 +15,14 @@ const envSchema = z.object({
   MAX_MARKET_DATA_AGE_SEC: z.coerce.number().int().positive().default(60),
   DAILY_LOSS_LIMIT_USD: decimalLikeString.default("100"),
   MAX_ORDER_NOTIONAL_USD: decimalLikeString.default("100"),
-  KILL_SWITCH_ON: z.enum(["true", "false"]).default("false")
+  KILL_SWITCH_ON: z.enum(["true", "false"]).default("false"),
+  KIS_TOKEN_URL: z.string().url().default("https://openapi.koreainvestment.com:9443/oauth2/tokenP"),
+  KIS_APP_KEY: z.string().default(""),
+  KIS_APP_SECRET: z.string().default(""),
+  KIS_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+  KIS_AUTH_MAX_RETRY_COUNT: z.coerce.number().int().min(0).max(10).default(2),
+  KIS_AUTH_RETRY_BACKOFF_MS: z.coerce.number().int().nonnegative().default(300),
+  KIS_AUTH_EXPIRY_SKEW_SEC: z.coerce.number().int().nonnegative().default(30)
 });
 
 export type RuntimeConfig = z.infer<typeof envSchema>;
