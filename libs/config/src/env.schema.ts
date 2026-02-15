@@ -49,6 +49,10 @@ const envSchema = z.object({
   ANALYST_AVAILABLE_CASH_USD: decimalLikeString.default("100000"),
   ANALYST_ORDER_NOTIONAL_USD: decimalLikeString.default("100"),
   ANALYST_DAILY_PNL_USD: signedDecimalLikeString.default("0"),
+  TRADER_WORKER_CONCURRENCY: z.coerce.number().int().positive().default(2),
+  TRADER_AVAILABLE_CASH_USD: decimalLikeString.default("100000"),
+  TRADER_DAILY_PNL_USD: signedDecimalLikeString.default("0"),
+  TRADER_LIVE_ORDER_ENABLED: z.enum(["true", "false"]).default("false"),
   OPENAI_API_KEY: z.string().default("")
 });
 

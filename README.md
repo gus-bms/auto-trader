@@ -67,6 +67,12 @@ npm run dev:reconciler
 - LLM timeout/failure/schema mismatch always falls back to `WAIT`
 - Emits `orderIntentQueue` only when decision is `BUY` and hard risk verdict is `PASS`
 
+## Trader worker baseline
+
+- Consumes `orderIntentQueue` and runs hard preflight risk gate before any execution path
+- Generates deterministic `idempotencyKey` from symbol, decisionId, and minute bucket
+- Defaults to dry-run and never sends live orders unless `TRADER_LIVE_ORDER_ENABLED=true`
+
 ## Build
 
 ```bash
