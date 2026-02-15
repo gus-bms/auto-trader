@@ -46,6 +46,12 @@ npm run dev:reconciler
 - Invalid schema or 4xx responses fail fast and trigger safe-mode hook
 - Token caching uses expiry skew to reduce near-expiration order risk
 
+## KIS websocket baseline
+
+- Session manager supports exponential reconnect and automatic re-subscribe
+- Stream startup is gated by `KIS_WS_ENABLED=true` and `KIS_WS_APPROVAL_KEY`
+- Raw websocket payload is forwarded to `MarketWatcherService.handleSnapshot` when JSON
+
 ## Market watcher baseline
 
 - Incoming snapshots are blocked when older than `MAX_MARKET_DATA_AGE_SEC`
