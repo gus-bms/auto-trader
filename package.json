@@ -1,0 +1,42 @@
+{
+  "name": "auto-trader",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KIS US stock auto-trader (safety-first)",
+  "packageManager": "npm@10.8.2",
+  "scripts": {
+    "infra:up": "docker compose up -d mysql redis",
+    "infra:down": "docker compose down",
+    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev:watcher": "tsx watch apps/market-watcher/src/main.ts",
+    "dev:trader": "tsx watch apps/trader/src/main.ts",
+    "dev:reconciler": "tsx watch apps/reconciler/src/main.ts",
+    "start:watcher": "node dist/apps/market-watcher/src/main.js",
+    "start:trader": "node dist/apps/trader/src/main.js",
+    "start:reconciler": "node dist/apps/reconciler/src/main.js",
+    "lint": "npm run typecheck",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.3",
+    "@nestjs/core": "^11.0.3",
+    "@nestjs/platform-express": "^11.0.3",
+    "bullmq": "^5.56.8",
+    "decimal.js": "^10.4.3",
+    "dotenv": "^16.4.7",
+    "ioredis": "^5.4.2",
+    "mysql2": "^3.11.5",
+    "pino": "^9.6.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "pino-pretty": "^13.0.0",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

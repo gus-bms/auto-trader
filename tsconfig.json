@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "useUnknownInCatchVariables": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@app/config": ["libs/config/src/index.ts"],
+      "@app/domain": ["libs/domain/src/index.ts"],
+      "@app/observability": ["libs/observability/src/index.ts"],
+      "@app/risk": ["libs/risk/src/index.ts"]
+    },
+    "types": ["node"]
+  },
+  "include": ["apps/**/*.ts", "libs/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}
