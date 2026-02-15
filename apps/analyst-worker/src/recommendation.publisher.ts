@@ -12,7 +12,7 @@ export class RecommendationPublisher implements OnModuleDestroy {
 
   async publish(event: RecommendationProducedEvent): Promise<void> {
     const queue = this.getQueue();
-    const jobId = `${event.symbol}:${event.recommendationId}`;
+    const jobId = `${event.symbol}-${event.recommendationId}`;
 
     await queue.add("recommendation-produced", event, {
       jobId,

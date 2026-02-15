@@ -12,7 +12,7 @@ export class OrderIntentPublisher implements OnModuleDestroy {
 
   async publish(event: OrderIntentEvent): Promise<void> {
     const queue = this.getQueue();
-    const jobId = `${event.symbol}:${event.decisionId}`;
+    const jobId = `${event.symbol}-${event.decisionId}`;
 
     await queue.add("order-intent", event, {
       jobId,

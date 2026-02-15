@@ -35,7 +35,7 @@ const envSchema = z.object({
   KIS_WS_TR_ID: z.string().min(1).default("HDFSCNT0"),
   KIS_WS_RECONNECT_BASE_MS: z.coerce.number().int().positive().default(1000),
   KIS_WS_RECONNECT_MAX_MS: z.coerce.number().int().positive().default(10000),
-  REDIS_HOST: z.string().min(1).default("127.0.0.1"),
+  REDIS_HOST: z.string().min(1).default("localhost"),
   REDIS_PORT: z.coerce.number().int().positive().default(6379),
   TRADE_SIGNAL_QUEUE_NAME: z.string().min(1).default("tradeSignalQueue"),
   RECOMMENDATION_QUEUE_NAME: z.string().min(1).default("recommendationQueue"),
