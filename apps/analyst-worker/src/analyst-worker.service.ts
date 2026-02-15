@@ -23,15 +23,24 @@ export class AnalystWorkerService implements OnModuleInit, OnModuleDestroy {
 
   private readonly decisionEngine = new AnalystDecisionEngine(this.llmClient, this.config);
   private readonly recommendationScoringEngine = new RecommendationScoringEngine(this.config);
+  private readonly newsIngestService: NewsIngestService;
+  private readonly recommendationStoreService: RecommendationStoreService;
+  private readonly recommendationPublisher: RecommendationPublisher;
+  private readonly orderIntentPublisher: OrderIntentPublisher;
 
   private worker: Worker | null = null;
 
   constructor(
-    private readonly newsIngestService: NewsIngestService,
-    private readonly recommendationStoreService: RecommendationStoreService,
-    private readonly recommendationPublisher: RecommendationPublisher,
-    private readonly orderIntentPublisher: OrderIntentPublisher
-  ) {}
+    newsIngestService: NewsIngestService = new NewsIngestService(),
+    recommendationStoreService: RecommendationStoreService = new RecommendationStoreService(),
+    recommendationPublisher: RecommendationPublisher = new RecommendationPublisher(),
+    orderIntentPublisher: OrderIntentPublisher = new OrderIntentPublisher()
+  ) {
+    this.newsIngestService = newsIngestService;
+    this.recommendationStoreService = recommendationStoreService;
+    this.recommendationPublisher = recommendationPublisher;
+    this.orderIntentPublisher = orderIntentPublisher;
+  }
 
   onModuleInit(): void {
     this.worker = new Worker(
@@ -69,6 +78,10 @@ export class AnalystWorkerService implements OnModuleInit, OnModuleDestroy {
       await this.worker.close();
       this.worker = null;
     }
+
+    await this.recommendationStoreService.onModuleDestroy();
+    await this.recommendationPublisher.onModuleDestroy();
+    await this.orderIntentPublisher.onModuleDestroy();
   }
 
   private async processTradeSignalJob(job: Job): Promise<void> {
