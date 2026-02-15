@@ -71,6 +71,15 @@ npm run dev:reconciler
 - Emits `recommendationQueue` for recommendation-first workflow
 - Emits `orderIntentQueue` only when `ANALYST_EMIT_ORDER_INTENT=true`, decision is `BUY`, and hard risk verdict is `PASS`
 
+## Recommendation shortlist API
+
+- Reconciler exposes `GET /recommendations/top` for top BUY candidates from recent recommendation history
+- Backed by Redis list storage using `RECOMMENDATION_STORE_KEY`
+- Defaults are controlled by:
+  - `RECOMMENDATION_SHORTLIST_DEFAULT_LIMIT`
+  - `RECOMMENDATION_SHORTLIST_DEFAULT_LOOKBACK_MIN`
+  - `RECOMMENDATION_SHORTLIST_DEFAULT_MIN_SCORE`
+
 ## Trader worker baseline
 
 - Consumes `orderIntentQueue` and runs hard preflight risk gate before any execution path
