@@ -100,11 +100,7 @@ export class KisMarketStreamService implements OnModuleInit, OnModuleDestroy {
     this.session = null;
   }
 
-  constructor(private readonly marketWatcherService: MarketWatcherService) {
-    if (!(marketWatcherService instanceof MarketWatcherService)) {
-      throw new Error("MarketWatcherService provider wiring is invalid");
-    }
-  }
+  constructor(private readonly marketWatcherService: MarketWatcherService) {}
 
   private async forwardRawMessage(rawMessage: string): Promise<void> {
     const snapshots = this.rawFrameParser.parse(rawMessage);

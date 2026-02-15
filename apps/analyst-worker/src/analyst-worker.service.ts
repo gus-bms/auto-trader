@@ -29,19 +29,7 @@ export class AnalystWorkerService implements OnModuleInit, OnModuleDestroy {
     private readonly newsIngestService: NewsIngestService,
     private readonly recommendationPublisher: RecommendationPublisher,
     private readonly orderIntentPublisher: OrderIntentPublisher
-  ) {
-    if (!(newsIngestService instanceof NewsIngestService)) {
-      throw new Error("NewsIngestService provider wiring is invalid");
-    }
-
-    if (!(recommendationPublisher instanceof RecommendationPublisher)) {
-      throw new Error("RecommendationPublisher provider wiring is invalid");
-    }
-
-    if (!(orderIntentPublisher instanceof OrderIntentPublisher)) {
-      throw new Error("OrderIntentPublisher provider wiring is invalid");
-    }
-  }
+  ) {}
 
   onModuleInit(): void {
     this.worker = new Worker(

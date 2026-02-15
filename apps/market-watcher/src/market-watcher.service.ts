@@ -31,11 +31,7 @@ export class MarketWatcherService implements OnModuleInit, OnModuleDestroy {
 
   private stalenessCheckTimer: NodeJS.Timeout | null = null;
 
-  constructor(private readonly tradeSignalPublisher: TradeSignalPublisher) {
-    if (!(tradeSignalPublisher instanceof TradeSignalPublisher)) {
-      throw new Error("TradeSignalPublisher provider wiring is invalid");
-    }
-  }
+  constructor(private readonly tradeSignalPublisher: TradeSignalPublisher) {}
 
   onModuleInit(): void {
     this.logger.log(

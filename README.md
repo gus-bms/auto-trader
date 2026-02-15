@@ -34,6 +34,8 @@ npm run dev:trader
 npm run dev:reconciler
 ```
 
+`dev:*` and `start:*` scripts auto-load `.env` when present, so manual `source .env` is not required.
+
 ## Safety defaults
 
 - `APP_MODE=paper`

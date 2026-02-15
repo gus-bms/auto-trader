@@ -17,10 +17,6 @@ export class OrderIntentWorkerService implements OnModuleInit, OnModuleDestroy {
   private worker: Worker | null = null;
 
   constructor(orderExecutorService: OrderExecutorService) {
-    if (!(orderExecutorService instanceof OrderExecutorService)) {
-      throw new Error("OrderExecutorService provider wiring is invalid");
-    }
-
     this.processor = new OrderIntentProcessor(this.config, orderExecutorService);
   }
 
