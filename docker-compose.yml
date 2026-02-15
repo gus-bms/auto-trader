@@ -11,9 +11,18 @@ services:
       TZ: Asia/Seoul
     ports:
       - "3306:3306"
-    command: ["mysqld", "--default-authentication-plugin=mysql_native_password"]
+    command: ["mysqld"]
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_dev_only"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "-uroot",
+          "-proot_dev_only",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
