@@ -50,7 +50,7 @@ npm run dev:reconciler
 
 - Session manager supports exponential reconnect and automatic re-subscribe
 - Stream startup is gated by `KIS_WS_ENABLED=true` and `KIS_WS_APPROVAL_KEY`
-- Raw websocket payload is forwarded to `MarketWatcherService.handleSnapshot` when JSON
+- Raw frame parser converts `H0STCNT0` / `HDFSCNT0` payloads into internal market snapshots
 
 ## Market watcher baseline
 

@@ -2,12 +2,14 @@ import { loadRuntimeConfig } from "@app/config";
 import { KisWebSocketSession } from "@app/kis-adapter";
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
 
+import { KisRawFrameParser } from "./kis-raw-frame.parser";
 import { MarketWatcherService } from "./market-watcher.service";
 
 @Injectable()
 export class KisMarketStreamService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(KisMarketStreamService.name);
   private readonly config = loadRuntimeConfig();
+  private readonly rawFrameParser = new KisRawFrameParser();
 
   private session: KisWebSocketSession | null = null;
 
@@ -67,19 +69,21 @@ export class KisMarketStreamService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async forwardRawMessage(rawMessage: string): Promise<void> {
-    const payload = safeParseJson(rawMessage);
-    if (payload === null) {
+    const snapshots = this.rawFrameParser.parse(rawMessage);
+    if (snapshots.length === 0) {
       return;
     }
 
-    try {
-      const result = await this.marketWatcherService.handleSnapshot(payload);
-      if (result.accepted) {
-        this.logger.log(`tradeSignal accepted correlationId=${result.correlationId ?? "NONE"}`);
+    for (const snapshot of snapshots) {
+      try {
+        const result = await this.marketWatcherService.handleSnapshot(snapshot);
+        if (result.accepted) {
+          this.logger.log(`tradeSignal accepted correlationId=${result.correlationId ?? "NONE"}`);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown market payload parse error";
+        this.logger.debug(`Ignored market payload: ${message}`);
       }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown market payload parse error";
-      this.logger.debug(`Ignored market payload: ${message}`);
     }
   }
 }
@@ -89,17 +93,4 @@ function parseUniverseSymbols(raw: string): string[] {
     .split(",")
     .map((symbol) => symbol.trim().toUpperCase())
     .filter((symbol) => symbol.length > 0);
-}
-
-function safeParseJson(raw: string): unknown | null {
-  const trimmed = raw.trim();
-  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(trimmed) as unknown;
-  } catch {
-    return null;
-  }
 }
