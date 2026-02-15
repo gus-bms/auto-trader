@@ -7,6 +7,7 @@ import { Worker, type Job } from "bullmq";
 import { NewsIngestService } from "./news-ingest.service";
 import { OrderIntentPublisher } from "./order-intent.publisher";
 import { RecommendationPublisher } from "./recommendation.publisher";
+import { RecommendationStoreService } from "./recommendation-store.service";
 
 @Injectable()
 export class AnalystWorkerService implements OnModuleInit, OnModuleDestroy {
@@ -27,6 +28,7 @@ export class AnalystWorkerService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly newsIngestService: NewsIngestService,
+    private readonly recommendationStoreService: RecommendationStoreService,
     private readonly recommendationPublisher: RecommendationPublisher,
     private readonly orderIntentPublisher: OrderIntentPublisher
   ) {}
@@ -95,6 +97,7 @@ export class AnalystWorkerService implements OnModuleInit, OnModuleDestroy {
       `risk decisionId=${evaluation.decisionRecord.decisionId} verdict=${evaluation.riskEvaluation.verdict} blockCode=${evaluation.riskEvaluation.blockCode ?? "NONE"}`
     );
 
+    await this.recommendationStoreService.save(recommendationEvent);
     await this.recommendationPublisher.publish(recommendationEvent);
 
     this.logger.log(
