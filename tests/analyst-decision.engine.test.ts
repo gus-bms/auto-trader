@@ -55,10 +55,36 @@ test("falls back to WAIT on llm error", async () => {
   assert.equal(evaluation.orderIntentEvent, null);
 });
 
-test("blocks BUY decision when mode is not live", async () => {
+test("keeps screening active in paper mode but suppresses order intent", async () => {
   const config = loadRuntimeConfig({
     APP_MODE: "paper",
-    LIVE_MODE: "false"
+    LIVE_MODE: "false",
+    ANALYST_SCREENING_IGNORE_MODE_GUARD: "true"
+  });
+
+  const llmClient = {
+    analyze: async (): Promise<AnalystDecisionOutput> => ({
+      decision: "BUY",
+      confidence: 90,
+      riskLevel: "LOW",
+      rationale: "Strong setup"
+    })
+  };
+
+  const engine = new AnalystDecisionEngine(llmClient, config);
+  const evaluation = await engine.evaluateTradeSignal(createTradeSignalEvent(), Date.parse("2026-02-17T00:00:20.000Z"));
+
+  assert.equal(evaluation.riskEvaluation.verdict, "PASS");
+  assert.equal(evaluation.riskEvaluation.blockCode, null);
+  assert.equal(evaluation.decisionRecord.decision, "BUY");
+  assert.equal(evaluation.orderIntentEvent, null);
+});
+
+test("blocks screening in paper mode when mode guard override is disabled", async () => {
+  const config = loadRuntimeConfig({
+    APP_MODE: "paper",
+    LIVE_MODE: "false",
+    ANALYST_SCREENING_IGNORE_MODE_GUARD: "false"
   });
 
   const llmClient = {

@@ -54,6 +54,7 @@ const envSchema = z.object({
   ANALYST_LLM_ENDPOINT: z.string().url().default("https://api.openai.com/v1/chat/completions"),
   ANALYST_WORKER_CONCURRENCY: z.coerce.number().int().positive().default(2),
   ANALYST_EMIT_ORDER_INTENT: z.enum(["true", "false"]).default("false"),
+  ANALYST_SCREENING_IGNORE_MODE_GUARD: z.enum(["true", "false"]).default("true"),
   ANALYST_SCORE_BUY_THRESHOLD: z.coerce.number().min(0).max(100).default(65),
   ANALYST_NEWS_LOOKBACK_MIN: z.coerce.number().int().positive().default(180),
   ANALYST_NEWS_MAX_ITEMS: z.coerce.number().int().positive().default(20),

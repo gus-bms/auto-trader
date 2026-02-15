@@ -9,7 +9,7 @@ import type {
   RiskEvaluationResult,
   TradeSignalEvent
 } from "@app/domain";
-import type { RuntimeConfig } from "@app/config";
+import { isLiveTradingAllowed, type RuntimeConfig } from "@app/config";
 import { evaluateEntryRisk } from "@app/risk";
 
 import type { LlmAnalystClient } from "./llm-analyst.client";
@@ -64,10 +64,15 @@ export class AnalystDecisionEngine {
         requestedNotionalUsd: this.config.ANALYST_ORDER_NOTIONAL_USD,
         dailyPnlUsd: this.config.ANALYST_DAILY_PNL_USD
       },
-      this.config
+      this.config,
+      {
+        skipModeCheck: this.config.ANALYST_SCREENING_IGNORE_MODE_GUARD === "true"
+      }
     );
 
-    if (decisionRecord.decision !== "BUY" || riskEvaluation.verdict !== "PASS") {
+    const liveTradingAllowed = isLiveTradingAllowed(this.config);
+
+    if (decisionRecord.decision !== "BUY" || riskEvaluation.verdict !== "PASS" || !liveTradingAllowed) {
       return {
         decisionRecord,
         riskEvaluation,

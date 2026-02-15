@@ -11,8 +11,16 @@ export interface EntryRiskInput {
   dailyPnlUsd: Decimal.Value;
 }
 
-export function evaluateEntryRisk(input: EntryRiskInput, config: RuntimeConfig): RiskEvaluationResult {
-  if (!isLiveTradingAllowed(config)) {
+export interface EntryRiskEvaluationOptions {
+  skipModeCheck?: boolean;
+}
+
+export function evaluateEntryRisk(
+  input: EntryRiskInput,
+  config: RuntimeConfig,
+  options: EntryRiskEvaluationOptions = {}
+): RiskEvaluationResult {
+  if (options.skipModeCheck !== true && !isLiveTradingAllowed(config)) {
     return {
       verdict: "BLOCK",
       blockCode: "MODE_NOT_LIVE",

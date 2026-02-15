@@ -1,4 +1,4 @@
-import { loadRuntimeConfig } from "@app/config";
+import { isLiveTradingAllowed, loadRuntimeConfig } from "@app/config";
 import type { TradeSignalEvent } from "@app/domain";
 import { AnalystDecisionEngine, LlmAnalystClient, RecommendationScoringEngine } from "@app/llm-analyst";
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
@@ -72,47 +72,57 @@ export class AnalystWorkerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async processTradeSignalJob(job: Job): Promise<void> {
-    const signalEvent = parseTradeSignalEvent(job.data);
-    if (signalEvent === null) {
-      this.logger.warn(`Invalid trade signal payload dropped jobId=${job.id ?? "NONE"}`);
-      return;
+    try {
+      const signalEvent = parseTradeSignalEvent(job.data);
+      if (signalEvent === null) {
+        this.logger.warn(`Invalid trade signal payload dropped jobId=${job.id ?? "NONE"}`);
+        return;
+      }
+
+      const nowMs = Date.now();
+      const newsDigest = this.newsIngestService.getNewsDigest(signalEvent.symbol, signalEvent.timestamp);
+      const evaluation = await this.decisionEngine.evaluateTradeSignal(signalEvent, nowMs, newsDigest);
+      const recommendationEvent = this.recommendationScoringEngine.buildRecommendation({
+        signalEvent,
+        decisionRecord: evaluation.decisionRecord,
+        newsDigest,
+        riskEvaluation: evaluation.riskEvaluation,
+        nowMs
+      });
+
+      this.logger.log(
+        `decision decisionId=${evaluation.decisionRecord.decisionId} symbol=${signalEvent.symbol} decision=${evaluation.decisionRecord.decision} confidence=${evaluation.decisionRecord.confidence} source=${evaluation.decisionRecord.source}`
+      );
+
+      this.logger.log(
+        `risk decisionId=${evaluation.decisionRecord.decisionId} verdict=${evaluation.riskEvaluation.verdict} blockCode=${evaluation.riskEvaluation.blockCode ?? "NONE"}`
+      );
+
+      await this.recommendationStoreService.save(recommendationEvent);
+      await this.recommendationPublisher.publish(recommendationEvent);
+
+      this.logger.log(
+        `recommendation recommendationId=${recommendationEvent.recommendationId} symbol=${recommendationEvent.symbol} decision=${recommendationEvent.decision} score=${recommendationEvent.scoreBreakdown.totalScore.toFixed(2)} newsCount=${recommendationEvent.newsDigest.newsCount}`
+      );
+
+      if (this.config.ANALYST_EMIT_ORDER_INTENT !== "true") {
+        return;
+      }
+
+      if (!isLiveTradingAllowed(this.config)) {
+        this.logger.warn("ANALYST_EMIT_ORDER_INTENT is true but live mode is disabled; skipping order intent publish");
+        return;
+      }
+
+      if (evaluation.orderIntentEvent === null) {
+        return;
+      }
+
+      await this.orderIntentPublisher.publish(evaluation.orderIntentEvent);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "unknown analyst worker error";
+      this.logger.error(`analyst job pipeline failed jobId=${job.id ?? "NONE"} error=${message}`);
     }
-
-    const nowMs = Date.now();
-    const newsDigest = this.newsIngestService.getNewsDigest(signalEvent.symbol, signalEvent.timestamp);
-    const evaluation = await this.decisionEngine.evaluateTradeSignal(signalEvent, nowMs, newsDigest);
-    const recommendationEvent = this.recommendationScoringEngine.buildRecommendation({
-      signalEvent,
-      decisionRecord: evaluation.decisionRecord,
-      newsDigest,
-      riskEvaluation: evaluation.riskEvaluation,
-      nowMs
-    });
-
-    this.logger.log(
-      `decision decisionId=${evaluation.decisionRecord.decisionId} symbol=${signalEvent.symbol} decision=${evaluation.decisionRecord.decision} confidence=${evaluation.decisionRecord.confidence} source=${evaluation.decisionRecord.source}`
-    );
-
-    this.logger.log(
-      `risk decisionId=${evaluation.decisionRecord.decisionId} verdict=${evaluation.riskEvaluation.verdict} blockCode=${evaluation.riskEvaluation.blockCode ?? "NONE"}`
-    );
-
-    await this.recommendationStoreService.save(recommendationEvent);
-    await this.recommendationPublisher.publish(recommendationEvent);
-
-    this.logger.log(
-      `recommendation recommendationId=${recommendationEvent.recommendationId} symbol=${recommendationEvent.symbol} decision=${recommendationEvent.decision} score=${recommendationEvent.scoreBreakdown.totalScore.toFixed(2)} newsCount=${recommendationEvent.newsDigest.newsCount}`
-    );
-
-    if (this.config.ANALYST_EMIT_ORDER_INTENT !== "true") {
-      return;
-    }
-
-    if (evaluation.orderIntentEvent === null) {
-      return;
-    }
-
-    await this.orderIntentPublisher.publish(evaluation.orderIntentEvent);
   }
 }
 
