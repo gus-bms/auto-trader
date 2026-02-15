@@ -7,24 +7,31 @@ import type {
   NewsDigest,
   OrderIntentEvent,
   RiskEvaluationResult,
-  TradeSignalEvent
+  TradeSignalEvent,
+  UniverseEvaluationResult
 } from "@app/domain";
 import { isLiveTradingAllowed, type RuntimeConfig } from "@app/config";
 import { evaluateEntryRisk } from "@app/risk";
 
 import type { LlmAnalystClient } from "./llm-analyst.client";
+import { UniverseSelectorEngine } from "./universe-selector.engine";
 
 export interface AnalystDecisionEvaluation {
   decisionRecord: AnalystDecisionRecord;
   riskEvaluation: RiskEvaluationResult;
+  universeEvaluation: UniverseEvaluationResult;
   orderIntentEvent: OrderIntentEvent | null;
 }
 
 export class AnalystDecisionEngine {
+  private readonly universeSelector: UniverseSelectorEngine;
+
   constructor(
     private readonly llmClient: Pick<LlmAnalystClient, "analyze">,
     private readonly config: RuntimeConfig
-  ) {}
+  ) {
+    this.universeSelector = new UniverseSelectorEngine(config);
+  }
 
   async evaluateTradeSignal(
     signalEvent: TradeSignalEvent,
@@ -32,16 +39,22 @@ export class AnalystDecisionEngine {
     newsDigest?: NewsDigest
   ): Promise<AnalystDecisionEvaluation> {
     const llmInput = buildLlmInput(signalEvent, newsDigest);
+    const universeEvaluation = this.universeSelector.evaluateSignal(signalEvent, nowMs);
 
     let decisionOutput: AnalystDecisionOutput;
     let source: AnalystDecisionRecord["source"] = "llm";
 
-    try {
-      decisionOutput = await this.llmClient.analyze(llmInput);
-    } catch (error) {
+    if (!universeEvaluation.accepted) {
       source = "fallback";
-      const message = error instanceof Error ? error.message : "LLM unknown failure";
-      decisionOutput = createWaitFallbackDecision(message);
+      decisionOutput = createWaitFallbackDecision(`Universe filtered (${universeEvaluation.rejectionReasons.join(",")})`);
+    } else {
+      try {
+        decisionOutput = await this.llmClient.analyze(llmInput);
+      } catch (error) {
+        source = "fallback";
+        const message = error instanceof Error ? error.message : "LLM unknown failure";
+        decisionOutput = createWaitFallbackDecision(message);
+      }
     }
 
     const decisionRecord: AnalystDecisionRecord = {
@@ -76,6 +89,7 @@ export class AnalystDecisionEngine {
       return {
         decisionRecord,
         riskEvaluation,
+        universeEvaluation,
         orderIntentEvent: null
       };
     }
@@ -96,6 +110,7 @@ export class AnalystDecisionEngine {
     return {
       decisionRecord,
       riskEvaluation,
+      universeEvaluation,
       orderIntentEvent
     };
   }

@@ -181,6 +181,18 @@ function createRecommendation(overrides: {
       blockCode: null,
       details: {}
     },
+    universeEvaluation: {
+      runId: "2026-02-17",
+      profile: "day",
+      accepted: overrides.decision === "BUY",
+      rejectionReasons: overrides.decision === "BUY" ? [] : ["UNIVERSE_SCORE_TOO_LOW"],
+      scoreBreakdown: {
+        liquidityScore: 72,
+        fundamentalScore: 55,
+        technicalScore: 74,
+        universeScore: overrides.decision === "BUY" ? 69 : 44
+      }
+    },
     createdAt
   };
 }

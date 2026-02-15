@@ -1,5 +1,6 @@
 import type { NewsDigest } from "./news.types";
 import type { Decision, RiskEvaluationResult, RiskLevel } from "./trading.types";
+import type { UniverseEvaluationResult } from "./universe.types";
 
 export interface RecommendationScoreBreakdown {
   triggerScore: number;
@@ -23,6 +24,7 @@ export interface RecommendationProducedEvent {
   rationale: string;
   source: "llm+rules" | "fallback";
   scoreBreakdown: RecommendationScoreBreakdown;
+  universeEvaluation: UniverseEvaluationResult;
   newsDigest: NewsDigest;
   riskEvaluation: RiskEvaluationResult;
   createdAt: string;

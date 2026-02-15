@@ -149,6 +149,18 @@ function createRecommendation(recommendationId: string, totalScore: number): Rec
       blockCode: null,
       details: {}
     },
+    universeEvaluation: {
+      runId: "2026-02-17",
+      profile: "day",
+      accepted: true,
+      rejectionReasons: [],
+      scoreBreakdown: {
+        liquidityScore: 72,
+        fundamentalScore: 55,
+        technicalScore: 74,
+        universeScore: 69
+      }
+    },
     createdAt: "2026-02-17T10:00:01.000Z"
   };
 }

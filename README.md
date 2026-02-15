@@ -68,6 +68,7 @@ npm run dev:reconciler
 - Consumes `tradeSignalQueue` and validates strict LLM output schema (`BUY` or `WAIT`)
 - LLM timeout/failure/schema mismatch always falls back to `WAIT`
 - Builds news digest from `ANALYST_NEWS_MOCK_ITEMS_JSON` and applies sentiment-weighted recommendation scoring
+- Applies universe screening before LLM (`ANALYST_UNIVERSE_*`) and records rejection reasons
 - Emits `recommendationQueue` for recommendation-first workflow
 - Screening can ignore live-mode gating via `ANALYST_SCREENING_IGNORE_MODE_GUARD` (default: true)
 - Emits `orderIntentQueue` only when `ANALYST_EMIT_ORDER_INTENT=true`, decision is `BUY`, and hard risk verdict is `PASS`

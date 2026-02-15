@@ -84,6 +84,7 @@ export class AnalystWorkerService implements OnModuleInit, OnModuleDestroy {
       const evaluation = await this.decisionEngine.evaluateTradeSignal(signalEvent, nowMs, newsDigest);
       const recommendationEvent = this.recommendationScoringEngine.buildRecommendation({
         signalEvent,
+        universeEvaluation: evaluation.universeEvaluation,
         decisionRecord: evaluation.decisionRecord,
         newsDigest,
         riskEvaluation: evaluation.riskEvaluation,
@@ -104,6 +105,12 @@ export class AnalystWorkerService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(
         `recommendation recommendationId=${recommendationEvent.recommendationId} symbol=${recommendationEvent.symbol} decision=${recommendationEvent.decision} score=${recommendationEvent.scoreBreakdown.totalScore.toFixed(2)} newsCount=${recommendationEvent.newsDigest.newsCount}`
       );
+
+      if (!recommendationEvent.universeEvaluation.accepted) {
+        this.logger.warn(
+          `universe filtered symbol=${recommendationEvent.symbol} reasons=${recommendationEvent.universeEvaluation.rejectionReasons.join(",") || "NONE"}`
+        );
+      }
 
       if (this.config.ANALYST_EMIT_ORDER_INTENT !== "true") {
         return;

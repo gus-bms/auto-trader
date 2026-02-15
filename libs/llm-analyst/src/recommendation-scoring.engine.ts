@@ -8,11 +8,13 @@ import type {
   RecommendationScoreBreakdown,
   RiskEvaluationResult,
   RiskLevel,
-  TradeSignalEvent
+  TradeSignalEvent,
+  UniverseEvaluationResult
 } from "@app/domain";
 
 export interface RecommendationScoringInput {
   signalEvent: TradeSignalEvent;
+  universeEvaluation: UniverseEvaluationResult;
   decisionRecord: AnalystDecisionRecord;
   newsDigest: NewsDigest;
   riskEvaluation: RiskEvaluationResult;
@@ -44,6 +46,7 @@ export class RecommendationScoringEngine {
     };
 
     const decision =
+      input.universeEvaluation.accepted &&
       input.riskEvaluation.verdict === "PASS" &&
       input.decisionRecord.decision === "BUY" &&
       totalScore >= this.config.ANALYST_SCORE_BUY_THRESHOLD
@@ -51,9 +54,14 @@ export class RecommendationScoringEngine {
         : "WAIT";
 
     const riskLevel = inferRiskLevel(decision, totalScore, input.riskEvaluation);
-    const rationale = `${input.decisionRecord.rationale} | score=${totalScore.toFixed(2)} trigger=${triggerScore.toFixed(
+    const universeScore = input.universeEvaluation.scoreBreakdown.universeScore.toFixed(1);
+    const rejectionHint =
+      input.universeEvaluation.rejectionReasons.length > 0
+        ? ` rejection=${input.universeEvaluation.rejectionReasons.join(",")}`
+        : "";
+    const rationale = `${input.decisionRecord.rationale} | score=${totalScore.toFixed(2)} universe=${universeScore} trigger=${triggerScore.toFixed(
       1
-    )} technical=${technicalScore.toFixed(1)} news=${newsScore.toFixed(1)} riskPenalty=${riskPenalty.toFixed(1)}`;
+    )} technical=${technicalScore.toFixed(1)} news=${newsScore.toFixed(1)} riskPenalty=${riskPenalty.toFixed(1)}${rejectionHint}`;
 
     return {
       recommendationId: randomUUID(),
@@ -68,6 +76,7 @@ export class RecommendationScoringEngine {
       rationale: rationale.slice(0, 300),
       source: input.decisionRecord.source === "fallback" ? "fallback" : "llm+rules",
       scoreBreakdown,
+      universeEvaluation: input.universeEvaluation,
       newsDigest: input.newsDigest,
       riskEvaluation: input.riskEvaluation,
       createdAt: new Date(nowMs).toISOString()
